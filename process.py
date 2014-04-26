@@ -4,6 +4,7 @@ import datetime
 import glob
 import dateutil.parser
 import decimal
+from decimal import Decimal
 from exchange import exchange
 
 incomes = {}
@@ -36,6 +37,16 @@ def read_countries():
 
 countries = read_countries()
 
+
+def read_advances():
+    resp = {}
+    for line in csv.reader(open('zaliczki.csv')):
+        year, month, value = line
+        resp[(int(year), int(month))] = decimal.Decimal(value)
+    return resp
+
+paid_advances = read_advances()
+
 def money_round(dec):
     return dec.quantize(decimal.Decimal('0.01'),
                         rounding=decimal.ROUND_UP)
@@ -59,8 +70,19 @@ def split_by_month():
     if current:
         yield month, current
 
+def calculate_tax(value):
+    granica = 85528
+    if value < granica:
+        tax = Decimal('.18') * value - Decimal('556.02')
+        ret = max(tax, Decimal(0))
+    else:
+        ret = Decimal('14839.02') + Decimal('.32') * (value - granica)
+    return money_round(ret)
+
 by_country = collections.defaultdict(decimal.Decimal)
 sums_global = collections.defaultdict(decimal.Decimal)
+global_advance_paid = 0
+global_advance_base = 0
 
 for month, month_incomes in split_by_month():
     print()
@@ -81,10 +103,13 @@ for month, month_incomes in split_by_month():
     deductible = {
         'o-dzielo': decimal.Decimal(0.2),
         'zlecenie': decimal.Decimal(0.2),
-        'inne': decimal.Decimal(0.2),
+        'inne': decimal.Decimal(0),
     }
-    need_advance = ['o-dzielo', 'zlecenie']
-    tax_value = decimal.Decimal(0.19)
+    need_advance = ['o-dzielo', 'zlecenie',
+                    'inne' # nieobowiazkowe
+    ]
+
+    paid_advance = paid_advances.get(month, 0)
 
     for income in month_incomes:
         pln = exchange(amount=float(income.amount),
@@ -105,14 +130,17 @@ for month, month_incomes in split_by_month():
         print('  %s: %s PLN' % (k, v))
     print()
 
-    advance_sum = decimal.Decimal(0)
+    print('Zaliczka wplacona: %s PLN' % paid_advance)
+    global_advance_paid += paid_advance
+    print('Zaliczka wplacona (caly rok): %s PLN' % global_advance_paid)
     for type in need_advance:
         tax_base = sums[type] * (1 - deductible[type])
-        tax = money_round(tax_base * tax_value)
-        print('Zaliczna od %s: %s PLN' % (type, tax))
-        advance_sum += tax
+        global_advance_base += money_round(tax_base)
 
-    print('Zaliczna w sumie: %s PLN' % unit_round(advance_sum))
+    print('Podstawa zaliczki (caly rok): %s PLN' % (global_advance_base))
+    global_advance = calculate_tax(global_advance_base)
+    print('Zaliczka (caly rok): %s PLN' % global_advance)
+    print('Zaliczna do zaplacenia: %s PLN' % unit_round(global_advance - global_advance_paid))
 
 
 print()
