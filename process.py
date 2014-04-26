@@ -40,6 +40,10 @@ def money_round(dec):
     return dec.quantize(decimal.Decimal('0.01'),
                         rounding=decimal.ROUND_UP)
 
+def unit_round(dec):
+    return dec.quantize(decimal.Decimal('1.'),
+                        rounding=decimal.ROUND_UP)
+
 def split_by_month():
     month = None
     current = None
@@ -74,6 +78,13 @@ for month, month_incomes in split_by_month():
         'Bonus': 'inne',
         'Upfront Payment': 'inne',
     }
+    deductible = {
+        'o-dzielo': decimal.Decimal(0.2),
+        'zlecenie': decimal.Decimal(0.2),
+        'inne': decimal.Decimal(0.2),
+    }
+    need_advance = ['o-dzielo', 'zlecenie']
+    tax_value = decimal.Decimal(0.19)
 
     for income in month_incomes:
         pln = exchange(amount=float(income.amount),
@@ -85,11 +96,24 @@ for month, month_incomes in split_by_month():
         by_country[country] += pln
         sums[type] += pln
         sums_global[type] += pln
-        #print(income, '->', pln)
+        print('%s, kwota: %s USD = %s PLN, klient: %s, umowa: %s, kraj: %s' % (
+            income.date, income.amount, pln, income.client, type, country))
 
+    print()
     print('Umowy:')
     for k, v in sums.items():
         print('  %s: %s PLN' % (k, v))
+    print()
+
+    advance_sum = decimal.Decimal(0)
+    for type in need_advance:
+        tax_base = sums[type] * (1 - deductible[type])
+        tax = money_round(tax_base * tax_value)
+        print('Zaliczna od %s: %s PLN' % (type, tax))
+        advance_sum += tax
+
+    print('Zaliczna w sumie: %s PLN' % unit_round(advance_sum))
+
 
 print()
 print('Podsumowanie')
