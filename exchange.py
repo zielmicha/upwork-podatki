@@ -36,7 +36,7 @@ def exchange(date, amount, currency):
     rate = exchange_rate(date, currency)
     return rate * amount
 
-files = glob.glob('nbp/archiwum_tab_a_*.xls')
+files = glob.glob('nbp/*.xls')
 
 if not files:
     logging.error('No NBP exchange rate archives found.')

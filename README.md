@@ -1,10 +1,10 @@
-odesk-podatki
+bgodesk-podatki
 =============
 
-A utility for computing Polish taxes for incomes from Odesk.
+A utility for computing Polish taxes for incomes from Upwork.
 
-Pobierz pliki CSV z https://www.odesk.com/earnings-history/ i zapisz je w katalogu z odesk-podatki.
-Jeżeli potrzeba, pobierz tabele średnich kursów ze strony NBP: http://www.nbp.pl/home.aspx?c=/ascx/archa.ascx i zapisz je do folderu nbp.
+Pobierz pliki CSV z https://www.upwork.com/earnings-history/ i zapisz je w katalogu z odesk-podatki.
+Jeżeli potrzeba, pobierz tabele średnich kursów (w formacie XLS!) ze strony NBP: http://www.nbp.pl/home.aspx?f=/kursy/arch_a.html i zapisz je do folderu nbp.
 
 Utwórz plik kraje.csv zawierający kraj pochodzenia twoich klientów, np:
 ```

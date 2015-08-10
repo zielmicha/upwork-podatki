@@ -1,3 +1,4 @@
+from __future__ import print_function
 import csv
 import collections
 import datetime
@@ -9,21 +10,38 @@ from exchange import exchange
 
 incomes = {}
 
-Income = collections.namedtuple('Income', 'date amount client type')
+Income = collections.namedtuple('Income', 'date amount amount_before_fee client type')
 
 def parse_income(line):
     amount = decimal.Decimal(line['Amount'])
     date = dateutil.parser.parse(line['Date'])
     date = datetime.date(date.year, date.month, date.day)
-    if line['Type'] == 'Withdrawal':
+    if line['Type'] in ('Withdrawal', 'Withdrawal Fee'):
         return None
-    return Income(date, amount, line['Client'], line['Type'])
+
+    if line['Type'] == 'Service Fee':
+        arr = line['Description'].split(' - ')
+        assert arr[0] == 'Service Fee'
+        assert arr[2].startswith('Ref ID ')
+        fee_for_id = int(arr[2].split(None)[2])
+        fee_for = incomes[fee_for_id]
+        assert amount <= 0
+        assert abs((fee_for.amount / 10 + amount) / amount) < 0.01, 'Unexpected value of Service Fee'
+        incomes[fee_for_id] = fee_for._replace(amount=fee_for.amount + amount)
+        return None
+
+    try:
+        client = line['Client']
+    except KeyError:
+        client = line['Team']
+    return Income(date, amount, amount, client, line['Type'])
 
 def read_income(name):
-    for line in csv.DictReader(open(name)):
+    for line in reversed(list(csv.DictReader(open(name)))):
         income = parse_income(line)
         if income:
-            incomes[line['Ref ID']] = income
+            if income.date <= datetime.date.today():
+                incomes[int(line['Ref ID'])] = income
 
 for name in glob.glob('statement_*.csv'):
     read_income(name)
@@ -96,6 +114,7 @@ for month, month_incomes in split_by_month():
     type_map = {
         'Milestone': 'o-dzielo',
         'Fixed Price': 'o-dzielo',
+        'Expense': 'o-dzielo', # always?
         'Hourly': 'zlecenie',
         'Bonus': 'inne',
         'Upfront Payment': 'inne',
@@ -121,13 +140,14 @@ for month, month_incomes in split_by_month():
         by_country[country] += pln
         sums[type] += pln
         sums_global[type] += pln
-        print('%s, kwota: %s USD = %s PLN, klient: %s, umowa: %s, kraj: %s' % (
-            income.date, income.amount, pln, income.client, type, country))
+        print('%s, kwota: %s USD = %s PLN (before fee %s USD), klient: %s, umowa: %s, kraj: %s' % (
+            income.date, income.amount, pln, income.amount_before_fee, income.client, type, country))
 
     print()
     print('Umowy:')
     for k, v in sums.items():
         print('  %s: %s PLN' % (k, v))
+    print('W sumie: %s PLN' % sum(sums.values()))
     print()
 
     print('Zaliczka wplacona: %s PLN' % paid_advance)
@@ -153,3 +173,4 @@ print()
 print('Umowy:')
 for k, v in sums_global.items():
     print('  %s: %s PLN' % (k, v))
+print('W sumie: %s PLN' % sum(sums_global.values()))
