@@ -1,4 +1,4 @@
-bgodesk-podatki
+upwork-podatki
 =============
 
 A utility for computing Polish taxes for incomes from Upwork.
