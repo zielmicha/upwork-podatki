@@ -25,7 +25,7 @@ def load_exchange(name):
 
 def exchange_rate(date, currency):
     assert isinstance(date, datetime.date)
-    for i in range(1, 4):
+    for i in range(1, 5):
         check_date = date - datetime.timedelta(days=i)
         if check_date in values:
             return values[check_date][currency]

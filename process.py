@@ -19,16 +19,8 @@ def parse_income(line):
     if line['Type'] in ('Withdrawal', 'Withdrawal Fee'):
         return None
 
-    if line['Type'] == 'Service Fee':
-        arr = line['Description'].split(' - ')
-        assert arr[0] == 'Service Fee'
-        assert arr[2].startswith('Ref ID ')
-        fee_for_id = int(arr[2].split(None)[2])
-        fee_for = incomes[fee_for_id]
-        assert amount <= 0
-        assert abs((fee_for.amount / 10 + amount) / amount) < 0.01, 'Unexpected value of Service Fee'
-        incomes[fee_for_id] = fee_for._replace(amount=fee_for.amount + amount)
-        return None
+    if line['Type'] in ('Service Fee', 'VAT'):
+        return
 
     try:
         client = line['Client']
@@ -116,7 +108,7 @@ for month, month_incomes in split_by_month():
         'Fixed Price': 'o-dzielo',
         'Expense': 'o-dzielo', # always?
         'Hourly': 'zlecenie',
-        'Bonus': 'inne',
+        'Bonus': 'o-dzielo', # ?
         'Upfront Payment': 'inne',
     }
     deductible = {
